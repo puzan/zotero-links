@@ -1,116 +1,87 @@
 "use strict";
 
-const { Cc, Ci, Services } = globalThis;
+// Zotero, Services, Components are globals in bootstrap.js (Zotero 7/8)
 
-var windowListener;
-var zoteroObserver;
+var CollectionLinks;
 
-// ── Entry points ────────────────────────────────────────────────────────────
+// ── Lifecycle ────────────────────────────────────────────────────────────────
 
 function install() {}
 function uninstall() {}
 
-function startup({ rootURI }, reason) {
-  // Zotero may not be ready yet — wait for it
-  zoteroObserver = {
-    observe(subject, topic) {
-      Services.obs.removeObserver(zoteroObserver, "zotero-loaded");
-      const Zotero = subject.wrappedJSObject || subject;
-      _init(Zotero);
+function startup({ id, version, rootURI }) {
+  CollectionLinks = {
+    addedElementIDs: [],
+
+    addToAllWindows() {
+      for (let win of Zotero.getMainWindows()) {
+        if (win.ZoteroPane) this.addToWindow(win);
+      }
     },
-  };
-  Services.obs.addObserver(zoteroObserver, "zotero-loaded", false);
-}
 
-function shutdown(data, reason) {
-  if (zoteroObserver) {
-    try { Services.obs.removeObserver(zoteroObserver, "zotero-loaded"); } catch (_) {}
-  }
-  if (windowListener) {
-    Services.wm.removeListener(windowListener);
-  }
-  // Remove menu items from all open windows
-  const enumerator = Services.wm.getEnumerator("zotero:main");
-  while (enumerator.hasMoreElements()) {
-    _removeFromWindow(enumerator.getNext());
-  }
-}
+    addToWindow(win) {
+      const doc = win.document;
+      const menu = doc.getElementById("zotero-collectionmenu");
+      if (!menu) return;
 
-// ── Init ────────────────────────────────────────────────────────────────────
+      const sep = doc.createXULElement("menuseparator");
+      sep.id = "copy-collection-link-sep";
 
-function _init(Zotero) {
-  // Add to already-open windows
-  const enumerator = Services.wm.getEnumerator("zotero:main");
-  while (enumerator.hasMoreElements()) {
-    _addToWindow(enumerator.getNext(), Zotero);
-  }
+      const item = doc.createXULElement("menuitem");
+      item.id = "copy-collection-link-menuitem";
+      item.setAttribute("label", "Copy Collection Link");
 
-  // Add to windows opened in the future
-  windowListener = {
-    onOpenWindow(xulWindow) {
-      const win = xulWindow
-        .QueryInterface(Ci.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindow);
-      win.addEventListener("load", () => {
-        if (
-          win.document.documentElement.getAttribute("windowtype") === "zotero:main"
-        ) {
-          _addToWindow(win, Zotero);
-        }
+      menu.addEventListener("popupshowing", () => {
+        item.disabled = !win.ZoteroPane.getSelectedCollection();
       });
+
+      item.addEventListener("command", () => {
+        const collection = win.ZoteroPane.getSelectedCollection();
+        if (!collection) return;
+        const link = _buildLink(collection);
+        if (link) _copyToClipboard(link);
+      });
+
+      menu.appendChild(sep);
+      menu.appendChild(item);
+      this.addedElementIDs.push(sep.id, item.id);
     },
-    onCloseWindow() {},
-    onStatusChange() {},
+
+    removeFromWindow(win) {
+      const doc = win.document;
+      for (const id of this.addedElementIDs) {
+        doc.getElementById(id)?.remove();
+      }
+    },
+
+    removeFromAllWindows() {
+      for (let win of Zotero.getMainWindows()) {
+        if (win.ZoteroPane) this.removeFromWindow(win);
+      }
+    },
   };
-  Services.wm.addListener(windowListener);
+
+  CollectionLinks.addToAllWindows();
 }
 
-// ── Per-window logic ────────────────────────────────────────────────────────
-
-function _addToWindow(win, Zotero) {
-  const doc = win.document;
-  const menu = doc.getElementById("zotero-collectionmenu");
-  if (!menu) return;
-
-  const sep = doc.createXULElement("menuseparator");
-  sep.id = "copy-collection-link-sep";
-
-  const item = doc.createXULElement("menuitem");
-  item.id = "copy-collection-link-menuitem";
-  item.setAttribute("label", "Copy Collection Link");
-
-  // Disable the item if no collection is selected (e.g. right-click on root)
-  menu.addEventListener("popupshowing", function onPopup() {
-    const collection = win.ZoteroPane.getSelectedCollection();
-    item.disabled = !collection;
-  });
-
-  item.addEventListener("command", function () {
-    const collection = win.ZoteroPane.getSelectedCollection();
-    if (!collection) return;
-
-    const link = _buildLink(collection, Zotero);
-    if (link) {
-      _copyToClipboard(link);
-    }
-  });
-
-  menu.appendChild(sep);
-  menu.appendChild(item);
+function onMainWindowLoad({ window }) {
+  CollectionLinks?.addToWindow(window);
 }
 
-function _removeFromWindow(win) {
-  const doc = win.document;
-  doc.getElementById("copy-collection-link-sep")?.remove();
-  doc.getElementById("copy-collection-link-menuitem")?.remove();
+function onMainWindowUnload({ window }) {
+  CollectionLinks?.removeFromWindow(window);
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+function shutdown() {
+  CollectionLinks?.removeFromAllWindows();
+  CollectionLinks = undefined;
+}
 
-function _buildLink(collection, Zotero) {
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function _buildLink(collection) {
   const key = collection.key;
   const library = Zotero.Libraries.get(collection.libraryID);
-
   if (library.libraryType === "user") {
     return `zotero://select/library/collections/${key}`;
   }
@@ -121,8 +92,7 @@ function _buildLink(collection, Zotero) {
 }
 
 function _copyToClipboard(text) {
-  const helper = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(
-    Ci.nsIClipboardHelper
-  );
+  const helper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
+    .getService(Components.interfaces.nsIClipboardHelper);
   helper.copyString(text);
 }
