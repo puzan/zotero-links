@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "Zotero Collection Links",
+  "version": "0.1.0",
+  "description": "Copy zotero:// links for collections via right-click menu",
+  "author": "",
+  "applications": {
+    "gecko": {
+      "id": "zotero-collection-links@local",
+      "strict_min_version": "102.0"
+    },
+    "zotero": {
+      "id": "zotero-collection-links@local",
+      "strict_min_version": "7.0.0"
+    }
+  }
+}
