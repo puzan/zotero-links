@@ -2,7 +2,7 @@
 
 // Zotero, Services, Components are globals in bootstrap.js (Zotero 7/8)
 
-var CollectionLinks;
+var ZoteroLinks;
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -10,7 +10,7 @@ function install() {}
 function uninstall() {}
 
 function startup({ id, version, rootURI }) {
-  CollectionLinks = {
+  ZoteroLinks = {
     addedElementIDs: [],
 
     addToAllWindows() {
@@ -20,6 +20,11 @@ function startup({ id, version, rootURI }) {
     },
 
     addToWindow(win) {
+      this._addCollectionMenuItem(win);
+      this._addItemMenuItem(win);
+    },
+
+    _addCollectionMenuItem(win) {
       const doc = win.document;
       const menu = doc.getElementById("zotero-collectionmenu");
       if (!menu) return;
@@ -27,24 +32,51 @@ function startup({ id, version, rootURI }) {
       const sep = doc.createXULElement("menuseparator");
       sep.id = "copy-collection-link-sep";
 
-      const item = doc.createXULElement("menuitem");
-      item.id = "copy-collection-link-menuitem";
-      item.setAttribute("label", "Copy Collection Link");
+      const menuitem = doc.createXULElement("menuitem");
+      menuitem.id = "copy-collection-link-menuitem";
+      menuitem.setAttribute("label", "Copy Collection Link");
 
       menu.addEventListener("popupshowing", () => {
-        item.disabled = !win.ZoteroPane.getSelectedCollection();
+        menuitem.disabled = !win.ZoteroPane.getSelectedCollection();
       });
 
-      item.addEventListener("command", () => {
+      menuitem.addEventListener("command", () => {
         const collection = win.ZoteroPane.getSelectedCollection();
         if (!collection) return;
-        const link = _buildLink(collection);
-        if (link) _copyToClipboard(link);
+        _copyToClipboard(_buildCollectionLink(collection));
       });
 
       menu.appendChild(sep);
-      menu.appendChild(item);
-      this.addedElementIDs.push(sep.id, item.id);
+      menu.appendChild(menuitem);
+      this.addedElementIDs.push(sep.id, menuitem.id);
+    },
+
+    _addItemMenuItem(win) {
+      const doc = win.document;
+      const menu = doc.getElementById("zotero-itemmenu");
+      if (!menu) return;
+
+      const sep = doc.createXULElement("menuseparator");
+      sep.id = "copy-item-link-sep";
+
+      const menuitem = doc.createXULElement("menuitem");
+      menuitem.id = "copy-item-link-menuitem";
+      menuitem.setAttribute("label", "Copy Item Link");
+
+      menu.addEventListener("popupshowing", () => {
+        const items = win.ZoteroPane.getSelectedItems();
+        menuitem.disabled = items.length !== 1;
+      });
+
+      menuitem.addEventListener("command", () => {
+        const items = win.ZoteroPane.getSelectedItems();
+        if (items.length !== 1) return;
+        _copyToClipboard(_buildItemLink(items[0]));
+      });
+
+      menu.appendChild(sep);
+      menu.appendChild(menuitem);
+      this.addedElementIDs.push(sep.id, menuitem.id);
     },
 
     removeFromWindow(win) {
@@ -61,37 +93,41 @@ function startup({ id, version, rootURI }) {
     },
   };
 
-  CollectionLinks.addToAllWindows();
+  ZoteroLinks.addToAllWindows();
 }
 
 function onMainWindowLoad({ window }) {
-  CollectionLinks?.addToWindow(window);
+  ZoteroLinks?.addToWindow(window);
 }
 
 function onMainWindowUnload({ window }) {
-  CollectionLinks?.removeFromWindow(window);
+  ZoteroLinks?.removeFromWindow(window);
 }
 
 function shutdown() {
-  CollectionLinks?.removeFromAllWindows();
-  CollectionLinks = undefined;
+  ZoteroLinks?.removeFromAllWindows();
+  ZoteroLinks = undefined;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function _buildLink(collection) {
-  const key = collection.key;
+function _buildCollectionLink(collection) {
   const library = Zotero.Libraries.get(collection.libraryID);
   if (library.libraryType === "user") {
-    return `zotero://select/library/collections/${key}`;
+    return `zotero://select/library/collections/${collection.key}`;
   }
   if (library.libraryType === "group") {
-    return `zotero://select/groups/${library.groupID}/collections/${key}`;
+    return `zotero://select/groups/${library.groupID}/collections/${collection.key}`;
   }
   return null;
 }
 
+function _buildItemLink(item) {
+  return `zotero://select/items/${item.libraryID}_${item.key}`;
+}
+
 function _copyToClipboard(text) {
+  if (!text) return;
   const helper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
     .getService(Components.interfaces.nsIClipboardHelper);
   helper.copyString(text);
