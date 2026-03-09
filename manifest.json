@@ -1,12 +1,12 @@
 {
   "manifest_version": 2,
-  "name": "Zotero Collection Links",
+  "name": "Zotero Links",
   "version": "0.1.0",
   "description": "Copy zotero:// links for collections via right-click menu",
-  "author": "",
+  "author": "Ilya Zonov (https://github.com/puzan)",
   "applications": {
     "zotero": {
-      "id": "zotero-collection-links@local",
+      "id": "zotero-links@puzan.dev",
       "update_url": "https://localhost:8443/",
       "strict_min_version": "7.0",
       "strict_max_version": "8.*"

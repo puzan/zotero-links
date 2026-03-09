@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PLUGIN_NAME="zotero-collection-links"
+PLUGIN_NAME="zotero-links"
 OUTPUT="${PLUGIN_NAME}.xpi"
 
 rm -f "$OUTPUT"
