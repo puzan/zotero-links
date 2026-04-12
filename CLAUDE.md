@@ -18,6 +18,10 @@ A minimal Zotero 8 bootstrap plugin that adds two context menu items:
 
 The `.xpi` is a zip of `manifest.json` + `bootstrap.js`. It is gitignored. The versioned build uses a temp dir so the original `manifest.json` is not modified.
 
+## Build after changes
+
+After completing any code change, always run `./build.sh` to produce a fresh `zotero-links.xpi`.
+
 ## Install / reload
 
 Install via Zotero → Tools → Add-ons → gear icon → Install Add-on From File. After editing code, re-run `build.sh` and reinstall the `.xpi`.
