@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Links",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Copy zotero:// links for collections via right-click menu",
   "author": "Ilya Zonov (https://github.com/puzan)",
   "applications": {
@@ -11,5 +11,9 @@
       "strict_min_version": "7.0",
       "strict_max_version": "8.*"
     }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
   }
 }

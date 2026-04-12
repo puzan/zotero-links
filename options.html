@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Zotero Links Preferences</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+    input { display: block; width: 100%; max-width: 400px; margin-bottom: 16px; padding: 4px 6px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <label for="claudeApiKey">Claude API Key</label>
+  <input type="password" id="claudeApiKey" />
+
+  <label for="excludedCollections">Excluded Collections (comma-separated)</label>
+  <input type="text" id="excludedCollections" placeholder="00-inbox" />
+
+  <script>
+    const PREF_API_KEY = "extensions.zotero-links.claudeApiKey";
+    const PREF_EXCLUDED = "extensions.zotero-links.excludedCollections";
+
+    const apiKeyInput = document.getElementById("claudeApiKey");
+    const excludedInput = document.getElementById("excludedCollections");
+
+    // Populate fields from prefs on load
+    apiKeyInput.value = Services.prefs.getCharPref(PREF_API_KEY, "");
+    excludedInput.value = Services.prefs.getCharPref(PREF_EXCLUDED, "00-inbox");
+
+    // Persist changes immediately on input
+    apiKeyInput.addEventListener("input", () => {
+      Services.prefs.setCharPref(PREF_API_KEY, apiKeyInput.value);
+    });
+
+    excludedInput.addEventListener("input", () => {
+      Services.prefs.setCharPref(PREF_EXCLUDED, excludedInput.value);
+    });
+  </script>
+</body>
+</html>

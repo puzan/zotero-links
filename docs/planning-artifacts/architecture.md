@@ -449,7 +449,7 @@ popupshowing event
 - `ZoteroLinks.addedElementIDs` is the single cleanup registry — all new element IDs pushed here
 
 **Build Process:**
-`build.sh` zips all non-gitignored files in the repo root. Adding `options.html` requires no build script changes — it is included automatically.
+`build.sh` explicitly lists files to zip (`manifest.json bootstrap.js`). Adding `options.html` requires updating the build script to include it explicitly in both the versioned and unversioned zip commands.
 
 ### File Organization Patterns
 

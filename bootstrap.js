@@ -10,6 +10,14 @@ function install() {}
 function uninstall() {}
 
 function startup({ id, version, rootURI }) {
+  // Initialize preference defaults
+  if (!Services.prefs.prefHasUserValue("extensions.zotero-links.excludedCollections")) {
+    Services.prefs.setCharPref("extensions.zotero-links.excludedCollections", "00-inbox");
+  }
+  if (!Services.prefs.prefHasUserValue("extensions.zotero-links.claudeApiKey")) {
+    Services.prefs.setCharPref("extensions.zotero-links.claudeApiKey", "");
+  }
+
   ZoteroLinks = {
     addedElementIDs: [],
 
