@@ -4,6 +4,6 @@
 # Date: 2026-04-12T13:20:40.109Z
 
 user_name: Ilya
-communication_language: Russian
-document_output_language: Russian
+communication_language: English
+document_output_language: English
 output_folder: "{project-root}/docs"

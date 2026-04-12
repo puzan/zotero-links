@@ -11,6 +11,6 @@ project_knowledge: "{project-root}/docs"
 
 # Core Configuration Values
 user_name: Ilya
-communication_language: Russian
-document_output_language: Russian
+communication_language: English
+document_output_language: English
 output_folder: "{project-root}/docs"
