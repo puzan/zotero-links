@@ -49,5 +49,5 @@ development_status:
   epic-2: in-progress
   2-1-collection-list-metadata-extraction: done
   2-2-claude-api-classification-silent-assignment: done
-  2-3-error-handling-user-feedback: backlog
+  2-3-error-handling-user-feedback: review
   epic-2-retrospective: optional

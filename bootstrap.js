@@ -243,7 +243,7 @@ async function _autoAssignItem(item) {
   const metadataBlock = _buildMetadataBlock(item);
 
   if (collectionMap.size === 0) {
-    // Story 2.3: _notify("No matching collection found")
+    _notify("No matching collection found");
     return;
   }
 
@@ -271,13 +271,13 @@ async function _autoAssignItem(item) {
       }),
     });
   } catch (e) {
-    // Story 2.3: _notify("Could not reach Claude API — check your connection")
-    throw e;
+    _notify("Could not reach Claude API — check your connection");
+    return;
   }
 
   if (!response.ok) {
-    // Story 2.3: _notify("Claude API returned an error — check your API key")
-    throw new Error(`Claude API HTTP ${response.status}`);
+    _notify("Claude API returned an error — check your API key");
+    return;
   }
 
   const data = await response.json();
@@ -293,7 +293,7 @@ async function _autoAssignItem(item) {
   }
 
   if (!Array.isArray(names) || names.length === 0) {
-    // Story 2.3: _notify("No matching collection found")
+    _notify("No matching collection found");
     return;
   }
 
@@ -303,7 +303,7 @@ async function _autoAssignItem(item) {
     .map(n => collectionMap.get(n));
 
   if (validatedIDs.length === 0) {
-    // Story 2.3: _notify("No matching collection found")
+    _notify("No matching collection found");
     return;
   }
 
