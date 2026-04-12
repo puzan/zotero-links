@@ -339,12 +339,19 @@ async function _autoAssignItem(item) {
     return;
   }
 
-  const validatedIDs = candidates
-    .filter(c => typeof c.weight === "number" && isFinite(c.weight) && c.weight > 0.7)
-    .sort((a, b) => b.weight - a.weight)
-    .slice(0, 3)
-    .filter(c => collectionMap.has(c.name))
-    .map(c => collectionMap.get(c.name));
+  // Filter, validate names, and sort before slicing so that after ancestor
+  // deduplication we can still pull up to 3 candidates from the full list.
+  const sorted = candidates
+    .filter(c => typeof c.weight === "number" && isFinite(c.weight) && c.weight > 0.7 && collectionMap.has(c.name))
+    .sort((a, b) => b.weight - a.weight);
+
+  // Drop any candidate that is a path ancestor of another candidate in the list
+  // (e.g. remove "a" when "a / b" is also present).
+  const deduplicated = sorted.filter(
+    c => !sorted.some(other => other.name.startsWith(c.name + " / "))
+  );
+
+  const validatedIDs = deduplicated.slice(0, 3).map(c => collectionMap.get(c.name));
 
   if (validatedIDs.length === 0) {
     _notify("No matching collection found");
