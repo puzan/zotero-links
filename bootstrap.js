@@ -224,7 +224,7 @@ function _buildMetadataBlock(item) {
 
 async function _autoAssignItem(item) {
   const apiKey = Services.prefs.getCharPref("extensions.zotero-links.claudeApiKey", "");
-  if (!apiKey) {
+  if (!apiKey.trim()) {
     Zotero.Utilities.Internal.openPreferences(_prefPaneID);
     return;
   }
@@ -241,7 +241,76 @@ async function _autoAssignItem(item) {
   }
 
   const metadataBlock = _buildMetadataBlock(item);
-  void metadataBlock; // consumed in Story 2.2
 
-  // Story 2.2: call Claude API with collectionMap + metadataBlock, then assign
+  if (collectionMap.size === 0) {
+    // Story 2.3: _notify("No matching collection found")
+    return;
+  }
+
+  const collectionNames = [...collectionMap.keys()];
+  const userMessage = `Collections: ${collectionNames.join(", ")}\n\nItem metadata:\n${metadataBlock}`;
+  const systemPrompt =
+    "You are a library classification assistant. Given item metadata and a list of collection names, " +
+    "return a JSON array of up to 3 collection names from the list that best fit the item. " +
+    "Return only the JSON array, nothing else. If no collection fits, return [].";
+
+  let response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 256,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+    });
+  } catch (e) {
+    // Story 2.3: _notify("Could not reach Claude API — check your connection")
+    throw e;
+  }
+
+  if (!response.ok) {
+    // Story 2.3: _notify("Claude API returned an error — check your API key")
+    throw new Error(`Claude API HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.content?.[0]?.text;
+  if (!rawText) {
+    throw new Error("Claude API returned unexpected response format");
+  }
+  let names;
+  try {
+    names = JSON.parse(rawText);
+  } catch (e) {
+    throw new Error("Claude API returned non-JSON response");
+  }
+
+  if (!Array.isArray(names) || names.length === 0) {
+    // Story 2.3: _notify("No matching collection found")
+    return;
+  }
+
+  const validatedIDs = names
+    .filter(n => collectionMap.has(n))
+    .slice(0, 3)
+    .map(n => collectionMap.get(n));
+
+  if (validatedIDs.length === 0) {
+    // Story 2.3: _notify("No matching collection found")
+    return;
+  }
+
+  for (const id of validatedIDs) {
+    item.addToCollection(id);
+    await item.saveTx();
+  }
+
+  _notify(`Auto-assigned to ${validatedIDs.length} collection${validatedIDs.length > 1 ? "s" : ""}`);
 }
