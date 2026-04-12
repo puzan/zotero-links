@@ -266,7 +266,8 @@ async function _autoAssignItem(item) {
   _log(`Item context:\n${userMessage}`);
   const systemPrompt =
     "You are a library classification assistant. Given item metadata and a list of collection names, " +
-    "pick up to 3 collection names from the list that best fit the item. " +
+    "return candidate collection names from the list that best fit the item. " +
+    "For each candidate include a confidence weight between 0 and 1 reflecting how well it fits. " +
     "If no collection fits, return an empty array.";
 
   let response;
@@ -281,7 +282,7 @@ async function _autoAssignItem(item) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 256,
+        max_tokens: 512,
         system: systemPrompt,
         messages: [{ role: "user", content: userMessage }],
         tools: [{
@@ -292,9 +293,16 @@ async function _autoAssignItem(item) {
             properties: {
               collections: {
                 type: "array",
-                items: { type: "string" },
-                maxItems: 3,
-                description: "Collection names from the provided list",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    weight: { type: "number", minimum: 0, maximum: 1 },
+                  },
+                  required: ["name", "weight"],
+                  additionalProperties: false,
+                },
+                description: "Collection candidates with confidence weights",
               },
             },
             required: ["collections"],
@@ -325,16 +333,18 @@ async function _autoAssignItem(item) {
   }
 
   const toolUse = data.content?.find(b => b.type === "tool_use");
-  const names = toolUse?.input?.collections;
-  if (!Array.isArray(names) || names.length === 0) {
+  const candidates = toolUse?.input?.collections;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
     _notify("No matching collection found");
     return;
   }
 
-  const validatedIDs = names
-    .filter(n => collectionMap.has(n))
+  const validatedIDs = candidates
+    .filter(c => typeof c.weight === "number" && isFinite(c.weight) && c.weight > 0.7)
+    .sort((a, b) => b.weight - a.weight)
     .slice(0, 3)
-    .map(n => collectionMap.get(n));
+    .filter(c => collectionMap.has(c.name))
+    .map(c => collectionMap.get(c.name));
 
   if (validatedIDs.length === 0) {
     _notify("No matching collection found");
