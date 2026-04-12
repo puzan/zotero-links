@@ -1,6 +1,6 @@
 # Story 2.3: Error Handling & User Feedback
 
-Status: review
+Status: done
 
 ## Story
 
@@ -197,10 +197,18 @@ claude-sonnet-4-6
 - All expected error paths now `return` cleanly; no throws propagate from handled errors
 - FR16 compliance verified: item unchanged on all error paths (no `addToCollection` call in any error branch)
 
+**Post-review bug fixes (found during 2.3 review, fixed out-of-story):**
+
+- **Bug fix (Story 2.2):** Claude API was returning text wrapped in markdown code fences (` ```json\n...\n``` `), causing `JSON.parse` to fail with "non-JSON response". Fixed by migrating to Native Structured Outputs (`anthropic-beta: structured-outputs-2025-11-13`) with `tool_choice: {type: "tool", name: "assign_collections"}`. Response is now parsed from `content[].tool_use.input.collections` — no text parsing needed.
+- **Bug fix (Story 2.1):** `Zotero.Collections.getByLibrary()` returns only top-level collections. Nested collections were silently excluded from the prompt. Fixed by replacing flat lookup with recursive `_collectRecursive()` using `col.getChildCollections()`. Collection names now include full paths (`Parent / Child`).
+- **Out-of-scope addition:** Debug logging feature — `extensions.zotero-links.debugLogging` boolean pref, `_log()` helper writing to `Services.console`, checkbox in `preferences.xhtml`. Logs item context and raw Claude response when enabled.
+
 ### File List
 
 - bootstrap.js
+- preferences.xhtml
 
 ### Change Log
 
 - 2026-04-12: Implemented Story 2.3 — replaced all Story 2.3 stubs with live `_notify()` error messages (network error, HTTP error, no matching collection)
+- 2026-04-12: Post-review fixes — migrated to Structured Outputs (fixes non-JSON parse failure), recursive collection gathering (fixes missing nested collections), added debug logging feature

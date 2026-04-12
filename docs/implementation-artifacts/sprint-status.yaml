@@ -36,18 +36,19 @@
 
 generated: 2026-04-12
 last_updated: 2026-04-12
+last_updated_note: Epic 2 closed after post-review fixes (structured outputs, recursive collections, debug logging)
 project: zotero-links
 project_key: NOKEY
 tracking_system: file-system
 story_location: docs/implementation-artifacts
 
 development_status:
-  epic-1: in-progress
+  epic-1: done
   1-1-plugin-preferences-pane: done
   1-2-auto-assign-menu-item-plugin-lifecycle: done
   epic-1-retrospective: optional
-  epic-2: in-progress
+  epic-2: done
   2-1-collection-list-metadata-extraction: done
   2-2-claude-api-classification-silent-assignment: done
-  2-3-error-handling-user-feedback: review
+  2-3-error-handling-user-feedback: done
   epic-2-retrospective: optional
