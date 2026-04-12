@@ -3,6 +3,7 @@
 // Zotero, Services, Components are globals in bootstrap.js (Zotero 7/8)
 
 var ZoteroLinks;
+var _prefPaneID;
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,16 @@ function startup({ id, version, rootURI }) {
     Services.prefs.setCharPref("extensions.zotero-links.claudeApiKey", "");
   }
 
+  // Register preferences pane in Zotero Settings window
+  (async () => {
+    await Zotero.initializationPromise;
+    _prefPaneID = await Zotero.PreferencePanes.register({
+      pluginID: "zotero-links@puzan.dev",
+      src: rootURI + "preferences.xhtml",
+      label: "Zotero Links",
+    });
+  })();
+
   ZoteroLinks = {
     addedElementIDs: [],
 
@@ -30,6 +41,7 @@ function startup({ id, version, rootURI }) {
     addToWindow(win) {
       this._addCollectionMenuItem(win);
       this._addItemMenuItem(win);
+      this._addAutoAssignMenuItem(win);
     },
 
     _addCollectionMenuItem(win) {
@@ -87,6 +99,36 @@ function startup({ id, version, rootURI }) {
       this.addedElementIDs.push(sep.id, menuitem.id);
     },
 
+    _addAutoAssignMenuItem(win) {
+      const doc = win.document;
+      const menu = doc.getElementById("zotero-itemmenu");
+      if (!menu) return;
+
+      const menuitem = doc.createXULElement("menuitem");
+      menuitem.id = "zotero-links-autoassign-menuitem";
+      menuitem.setAttribute("label", "Auto-assign to collections");
+
+      menu.addEventListener("popupshowing", () => {
+        const items = win.ZoteroPane.getSelectedItems();
+        menuitem.disabled = items.length !== 1;
+      });
+
+      menuitem.addEventListener("command", () => {
+        const items = win.ZoteroPane.getSelectedItems();
+        if (items.length !== 1) return;
+        const item = items[0];
+        const apiKey = Services.prefs.getCharPref("extensions.zotero-links.claudeApiKey", "");
+        if (!apiKey) {
+          Zotero.Utilities.Internal.openPreferences(_prefPaneID);
+          return;
+        }
+        _autoAssignItem(item).catch(err => _notify("Unexpected error: " + err.message));
+      });
+
+      menu.appendChild(menuitem);
+      this.addedElementIDs.push(menuitem.id);
+    },
+
     removeFromWindow(win) {
       const doc = win.document;
       for (const id of this.addedElementIDs) {
@@ -139,4 +181,16 @@ function _copyToClipboard(text) {
   const helper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
     .getService(Components.interfaces.nsIClipboardHelper);
   helper.copyString(text);
+}
+
+function _notify(msg) {
+  const pw = new Zotero.ProgressWindow({ closeOnClick: true });
+  pw.changeHeadline("Zotero Links");
+  pw.addLines([msg]);
+  pw.startCloseTimer(4000);
+  pw.show();
+}
+
+async function _autoAssignItem(item) { // eslint-disable-line no-unused-vars
+  void item; // Classification pipeline — implemented in Story 2.x
 }

@@ -153,16 +153,15 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
-- Used `options_ui` key for manifest.json based on CLAUDE.md authoritative documentation (confirmed pattern matches architecture spec)
-- `options.html` uses `Services` global directly (available in Gecko extension context without import)
+- `options_ui` added to manifest.json initially; subsequently removed in Story 1.2 (replaced by `Zotero.PreferencePanes.register()` which adds a pane to Zotero Settings window — `options_ui` only creates a button in Add-ons Manager)
+- `options.html` was created initially but later removed — actual preferences pane is `preferences.xhtml` (added in Story 1.2)
 - Pref defaults initialized before `ZoteroLinks` object is created in `startup()`, using `prefHasUserValue` guard to avoid overwriting user-set values
 - Version bumped from `0.1.0` to `0.3.0` as required (skipping 0.2.0 per epics spec)
+- build.sh explicitly lists files (not glob) — `options.html` removed, `preferences.xhtml` added in Story 1.2
 - All 4 ACs satisfied; no test framework exists per architecture decision
-- build.sh updated to include options.html in XPI bundle (script explicitly lists files, not glob — architecture doc claim about automatic inclusion was incorrect)
 
 ### File List
 
 - manifest.json
-- options.html
 - bootstrap.js
 - build.sh

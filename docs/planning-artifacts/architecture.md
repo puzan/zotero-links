@@ -166,13 +166,50 @@ function _notify(msg) {
 }
 ```
 
-**Preferences Pane — `options.html`**
+**Preferences Pane — `preferences.xhtml`**
+
+Registered via `Zotero.PreferencePanes.register()` in `startup()` — this adds a pane to Zotero's Settings window (General/Sync/Export/… sidebar). `options_ui` in `manifest.json` only adds a button in Add-ons Manager and is NOT used.
+
+```js
+// In startup(), after await Zotero.initializationPromise:
+_prefPaneID = await Zotero.PreferencePanes.register({
+  pluginID: "zotero-links@puzan.dev",
+  src: rootURI + "preferences.xhtml",
+  label: "Zotero Links",
+});
+```
+
+`_prefPaneID` is a module-level var. The returned ID is auto-generated (not the pluginID). To open the pane programmatically:
+
+```js
+Zotero.Utilities.Internal.openPreferences(_prefPaneID);
+// NOT Zotero.openPreferences() — does not exist
+// NOT ZoteroPane.openPreferences() — deprecated
+```
+
+`preferences.xhtml` is a **XUL fragment** (root element `<vbox>`, not `<html>`). Loaded by Zotero as a fragment inside the Settings window. The `preference` attribute auto-binds fields to `Services.prefs` — no JS required:
+
+```xml
+<vbox>
+  <groupbox>
+    <hbox align="center">
+      <label>Claude API Key</label>
+      <html:input type="password"
+        preference="extensions.zotero-links.claudeApiKey" />
+    </hbox>
+    <hbox align="center">
+      <label>Excluded Collections (comma-separated)</label>
+      <html:input type="text"
+        preference="extensions.zotero-links.excludedCollections"
+        placeholder="00-inbox" />
+    </hbox>
+  </groupbox>
+</vbox>
+```
 
 Two fields:
-1. Claude API Key (text input, type="password")
-2. Excluded Collections (text input, comma-separated, placeholder "00-inbox")
-
-Declared in `manifest.json` via `options_ui: { page: "options.html" }`.
+1. Claude API Key (`type="password"`)
+2. Excluded Collections (text, comma-separated, placeholder "00-inbox")
 
 ### Infrastructure & Deployment
 
@@ -371,14 +408,14 @@ Never call `addToCollection` without `saveTx()`.
 
 ```
 zotero-links/
-├── manifest.json              # Plugin metadata — add options_ui field
+├── manifest.json              # Plugin metadata — version 0.3.0, no options_ui
 ├── bootstrap.js               # All plugin logic — extend ZoteroLinks object
-├── options.html               # NEW: Preferences pane (API key + exclusion list)
-├── build.sh                   # Unchanged
+├── preferences.xhtml          # NEW: Preferences pane XUL fragment (API key + exclusion list)
+├── build.sh                   # Updated: explicitly lists manifest.json, bootstrap.js, preferences.xhtml
 ├── updates.json               # Generated on release — unchanged
 ├── .github/
 │   └── workflows/
-│       └── release.yml        # Unchanged — picks up options.html automatically
+│       └── release.yml        # Unchanged
 └── docs/
     └── planning-artifacts/
         └── architecture.md    # This document
@@ -455,14 +492,22 @@ popupshowing event
 
 **`bootstrap.js` — section order after changes:**
 ```
+0. Module-level vars
+   - var ZoteroLinks
+   - var _prefPaneID              ← NEW (stores registered pane ID)
 1. Lifecycle globals (startup, shutdown, install, uninstall, onMainWindowLoad, onMainWindowUnload)
+   startup():
+     - pref defaults initialization
+     - async IIFE: await Zotero.initializationPromise → Zotero.PreferencePanes.register() → _prefPaneID
+     - ZoteroLinks = { ... }
+     - ZoteroLinks.addToAllWindows()
 2. ZoteroLinks object
    - addedElementIDs []
    - addToAllWindows()
    - addToWindow(win)             ← call _addAutoAssignMenuItem(win) here
    - _addCollectionMenuItem(win)
    - _addItemMenuItem(win)
-   - _addAutoAssignMenuItem(win)  ← NEW
+   - _addAutoAssignMenuItem(win)  ← NEW (no separator — shares separator with _addItemMenuItem visually)
    - removeFromWindow(win)
    - removeFromAllWindows()
 3. Module-scope helpers
@@ -470,19 +515,13 @@ popupshowing event
    - _buildItemLink(item)
    - _copyToClipboard(text)
    - _notify(msg)                 ← NEW
-   - _autoAssignItem(item)        ← NEW (async)
+   - _autoAssignItem(item)        ← NEW (async, stub until Story 2.x)
 ```
 
-**`manifest.json` — required addition:**
-```json
-"options_ui": {
-  "page": "options.html",
-  "open_in_tab": false
-}
-```
+**`manifest.json` — no `options_ui` needed.** Preferences pane is registered via `Zotero.PreferencePanes.register()` at runtime.
 
-**`options.html` — structure:**
-Standard Zotero plugin options page. Reads/writes `Services.prefs` on load/change. No external scripts.
+**`preferences.xhtml` — structure:**
+XUL fragment (root `<vbox>`). Uses `preference` attribute for auto pref-binding. No scripts needed.
 
 ## Architecture Validation Results
 

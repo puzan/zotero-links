@@ -44,7 +44,7 @@ story_location: docs/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-plugin-preferences-pane: done
-  1-2-auto-assign-menu-item-plugin-lifecycle: backlog
+  1-2-auto-assign-menu-item-plugin-lifecycle: done
   epic-1-retrospective: optional
   epic-2: backlog
   2-1-collection-list-metadata-extraction: backlog
