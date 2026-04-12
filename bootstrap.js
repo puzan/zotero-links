@@ -191,6 +191,57 @@ function _notify(msg) {
   pw.show();
 }
 
-async function _autoAssignItem(item) { // eslint-disable-line no-unused-vars
-  void item; // Classification pipeline — implemented in Story 2.x
+function _buildMetadataBlock(item) {
+  const lines = [];
+
+  const title = item.getField("title");
+  if (title) lines.push(`Title: ${title}`);
+
+  const creators = item.getCreators()
+    .filter(c => c.creatorType === "author")
+    .map(c => c.fieldMode === 1 ? c.lastName : `${c.firstName} ${c.lastName}`.trim())
+    .filter(Boolean);
+  if (creators.length) lines.push(`Authors: ${creators.join(", ")}`);
+
+  const abstract = item.getField("abstractNote");
+  if (abstract) lines.push(`Abstract: ${abstract}`);
+
+  const dateStr = item.getField("date");
+  const yearMatch = dateStr && dateStr.match(/\d{4}/);
+  if (yearMatch) lines.push(`Year: ${yearMatch[0]}`);
+
+  const itemType = Zotero.ItemTypes.getName(item.itemTypeID);
+  if (itemType) lines.push(`Item type: ${itemType}`);
+
+  const journalPublisher = item.getField("publicationTitle") || item.getField("publisher");
+  if (journalPublisher) lines.push(`Journal/Publisher: ${journalPublisher}`);
+
+  const tags = item.getTags().map(t => t.tag).filter(Boolean);
+  if (tags.length) lines.push(`Tags: ${tags.join(", ")}`);
+
+  return lines.join("\n");
+}
+
+async function _autoAssignItem(item) {
+  const apiKey = Services.prefs.getCharPref("extensions.zotero-links.claudeApiKey", "");
+  if (!apiKey) {
+    Zotero.Utilities.Internal.openPreferences(_prefPaneID);
+    return;
+  }
+
+  const excludedRaw = Services.prefs.getCharPref("extensions.zotero-links.excludedCollections", "00-inbox");
+  const excluded = excludedRaw.split(",").map(s => s.trim()).filter(Boolean);
+
+  const allCollections = Zotero.Collections.getByLibrary(item.libraryID);
+  const collectionMap = new Map();
+  for (const col of allCollections) {
+    if (!excluded.includes(col.name)) {
+      collectionMap.set(col.name, col.id);
+    }
+  }
+
+  const metadataBlock = _buildMetadataBlock(item);
+  void metadataBlock; // consumed in Story 2.2
+
+  // Story 2.2: call Claude API with collectionMap + metadataBlock, then assign
 }

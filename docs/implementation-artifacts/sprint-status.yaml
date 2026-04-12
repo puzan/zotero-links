@@ -46,8 +46,8 @@ development_status:
   1-1-plugin-preferences-pane: done
   1-2-auto-assign-menu-item-plugin-lifecycle: done
   epic-1-retrospective: optional
-  epic-2: backlog
-  2-1-collection-list-metadata-extraction: backlog
+  epic-2: in-progress
+  2-1-collection-list-metadata-extraction: done
   2-2-claude-api-classification-silent-assignment: backlog
   2-3-error-handling-user-feedback: backlog
   epic-2-retrospective: optional
